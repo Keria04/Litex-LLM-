@@ -1,2 +1,22 @@
-# Litex-LLM-
-参加2025 CCF大数据与计算智能大赛-形式化数学竞赛赛题的代码仓库
+# Litex LLM 
+
+## Environment Setup
+
+```
+bash setup_env.sh
+```
+
+## Training
+
+```
+bash run.sh
+```
+
+## Evaluation
+
+evaluate on miniF2F
+
+```
+python eval.py
+```
+

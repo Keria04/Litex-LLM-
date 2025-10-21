@@ -1,0 +1,28 @@
+[build-system]
+requires = ["flit_core >= 3.12.0, <4", "pexpect", "requests"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "pylitex"
+version = "0.1.18"
+authors = [
+  {name = "Hill Hong", email = "scanfandprintf@icloud.com"},
+]
+dependencies = [
+    "pexpect >= 4.8.0",
+    "requests >= 2.22.0",
+]
+description = "Python package for Litex core"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/litexlang/pylitex"
+Issues = "https://github.com/litexlang/pylitex/issues"
