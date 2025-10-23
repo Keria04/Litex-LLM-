@@ -12,7 +12,8 @@ CUDA  12.8
 
 显存要求：
 
-> 30G+
+> 使用 Qwen/Qwen2.5-7B-Instruct
+> 66G+
 
 ## Environment Setup
 
