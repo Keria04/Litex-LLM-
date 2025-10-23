@@ -1,5 +1,15 @@
 # Litex LLM 
 
+可运行版本：
+
+autodl镜像
+
+```
+PyTorch  2.8.0
+Python  3.12(ubuntu22.04)
+CUDA  12.8
+```
+
 ## Environment Setup
 
 ```
