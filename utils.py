@@ -16,6 +16,35 @@ def judge_litex_correctness(message):
     return result["success"]
 
 def load_json_datadict(json_path):
+    """
+    从 JSON 文件加载 Hugging Face 的 DatasetDict。
+
+    该函数读取 UTF-8 编码的 JSON 文件，文件应为记录列表（字典组成的列表）。
+    使用 Dataset.from_list 构建 datasets.Dataset，并封装为只含 'train' 切分的 DatasetDict。
+
+    参数:
+        json_path (str | os.PathLike): 指向包含对象列表的 JSON 文件路径。
+    返回:
+        datasets.DatasetDict: 仅包含一个切分：
+            - 'train': 由 JSON 记录构建的 datasets.Dataset。
+    说明:
+        - 依赖 datasets 库（pip install datasets）。
+        - JSON 内容必须是映射（dict）的列表，键将成为列名。
+        - 所有记录应具有兼容的模式；值需可 JSON 序列化。
+        - 整个 JSON 将一次性读入内存。
+    可能抛出:
+        FileNotFoundError: 当 json_path 不存在。
+        json.JSONDecodeError: 当文件内容不是合法 JSON。
+        TypeError | ValueError: 当 JSON 结构与 Dataset.from_list 不兼容。
+    示例:
+        >>> dd = load_json_datadict("data.json")
+        >>> dd["train"]  # 访问 'train' 切分
+        Dataset({
+          features: ...
+          num_rows: ...
+        })
+    """
+
     with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
