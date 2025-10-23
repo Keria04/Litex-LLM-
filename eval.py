@@ -10,7 +10,7 @@ from tqdm import tqdm
 from datetime import datetime
 from utils import *
 
-MODEL_PATH = "Qwen_Qwen2.5-7B-Instruct"
+MODEL_PATH = "Qwen/Qwen2.5-7B-Instruct"
 LORA_PATH = "results/checkpoint-233"
 test_dataset = load_json_datadict("test_litex.json")
 
