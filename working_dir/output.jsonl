@@ -1,0 +1,8 @@
+{
+    "id": "107361",
+    "nl_problem": "Three cubes have edges of lengths 4,5 and 6 .\n\nThe average (mean) of their volumes is\n(A) 120\n(B) 125\n(C) 1125\n(D) 261\n(E) 135\n\n![](https://cdn.mathpix.com/cropped/2024_04_20_ac36362783317e0251fdg-104.jpg?height=249&width=379&top_left_y=1220&top_left_x=1293)",
+    "formal_type": "Litex",
+    "header": "",
+    "formal_statement": "forall e1, e2, e3, v1, v2, v3, partial_sum, total_sum, avg N_pos:\n        e1 = 4\n        e2 = 5\n        e3 = 6\n        v1 = e1 ^ 3\n        v2 = e2 ^ 3\n        v3 = e3 ^ 3\n        partial_sum = v1 + v2\n        total_sum = partial_sum + v3\n        avg = total_sum / 3\n        =>:\n            avg = 135",
+    "formal_code": "claim:\n    forall e1, e2, e3, v1, v2, v3, partial_sum, total_sum, avg N_pos:\n        e1 = 4\n        e2 = 5\n        e3 = 6\n        v1 = e1 ^ 3\n        v2 = e2 ^ 3\n        v3 = e3 ^ 3\n        partial_sum = v1 + v2\n        total_sum = partial_sum + v3\n        avg = total_sum / 3\n        =>:\n            avg = 135\n    prove:\n        v1 = 4 ^ 3\n        v1 = 64\n\n        v2 = 5 ^ 3\n        v2 = 125\n\n        v3 = 6 ^ 3\n        v3 = 216\n\n        partial_sum = v1 + v2\n        partial_sum = 64 + 125\n        partial_sum = 189\n\n        total_sum = partial_sum + v3\n        total_sum = 189 + 216\n        total_sum = 405\n\n        avg = total_sum / 3\n        avg = 405 / 3\n        avg = 135"
+}
