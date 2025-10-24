@@ -8,6 +8,35 @@ import json
 import numpy as np
 from datetime import datetime
 from utils import *
+import wandb
+
+# ==============================
+# 配置 W&B（请在此填写你的组织、项目和 Token）
+# 建议优先使用环境变量覆盖，下面的默认值仅为占位符
+# ==============================
+WANDB_ENTITY = os.environ.get("WANDB_ENTITY", "qianliq-default")  # 组织/团队名
+WANDB_PROJECT = os.environ.get("WANDB_PROJECT", "litex-llm")        # 项目名
+WANDB_API_KEY = os.environ.get("WANDB_API_KEY")  # Token（建议使用环境变量注入）
+
+if WANDB_API_KEY and WANDB_API_KEY != "YOUR_WANDB_API_KEY":
+    os.environ["WANDB_API_KEY"] = WANDB_API_KEY
+    try:
+        wandb.login(key=WANDB_API_KEY)
+    except Exception as e:
+        print(f"W&B 登录失败（将继续无 W&B）：{e}")
+
+run_name = f"litex-sft-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+wandb.init(
+    entity=WANDB_ENTITY,
+    project=WANDB_PROJECT,
+    name=run_name,
+    config={
+        "program": "litex_sft.py",
+        "model_name": "Qwen/Qwen2.5-7B-Instruct",
+        "notes": "Litex SFT 训练与在线评估监控",
+    },
+    save_code=True,
+)
 
 
 MODEL_PATH = "Qwen/Qwen2.5-7B-Instruct"
@@ -39,6 +68,13 @@ test_dataset = test_dataset["train"]
 
 print("训练集大小：", len(train_dataset))
 print("评估集大小：", len(test_dataset))
+try:
+    wandb.config.update({
+        "train_size": len(train_dataset),
+        "eval_size": len(test_dataset),
+    }, allow_val_change=True)
+except Exception:
+    pass
 
 # 显式加载模型和tokenizer
 tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
@@ -58,6 +94,19 @@ peft_config = LoraConfig(
     task_type="CAUSAL_LM",
     target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 )
+
+# 记录 LoRA 配置到 W&B
+try:
+    wandb.config.update({
+        "lora_r": 32,
+        "lora_alpha": 64,
+        "lora_dropout": 0.1,
+        "lora_bias": "none",
+        "lora_task": "CAUSAL_LM",
+        "lora_targets": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    }, allow_val_change=True)
+except Exception:
+    pass
 
 # 自定义回调函数用于生成测试
 class EvaluationCallback(TrainerCallback):
@@ -127,6 +176,23 @@ class EvaluationCallback(TrainerCallback):
             with open(log_file, 'w', encoding='utf-8') as f:
                 json.dump(results, f, ensure_ascii=False, indent=2)
             
+            # 将评估结果同步到 W&B（表格 + 指标 + 工件）
+            try:
+                table = wandb.Table(columns=["sample_id", "claim", "full_litex", "correctness"])
+                for r in results[:-1]:  # 最后一条是汇总
+                    table.add_data(r["sample_id"], r["claim"], r["full_litex"], float(r["correctness"]))
+                summary = results[-1]
+                wandb.log({
+                    "eval/overall_correctness": float(summary["overall_correctness"]),
+                    "eval/num_samples": int(summary["num sample"]),
+                    "eval/samples": table,
+                }, step=state.global_step)
+                art = wandb.Artifact(f"generation_step_{state.global_step}", type="eval-results")
+                art.add_file(log_file)
+                wandb.log_artifact(art)
+            except Exception as e:
+                print(f"W&B 记录评估数据失败：{e}")
+
             print(f"评估结果已保存到: {log_file}")
             print("="*50 + "\n")
 
@@ -153,8 +219,17 @@ training_args = TrainingArguments(
     dataloader_pin_memory=False,
     remove_unused_columns=False,
     ddp_find_unused_parameters=False,
-    # report_to=None,
+    report_to=["wandb"],
+    run_name=run_name,
 )
+
+# 将训练超参记录到 W&B config（仅保留可序列化基础类型）
+try:
+    ta_dict = training_args.to_dict()
+    simple_ta = {k: v for k, v in ta_dict.items() if isinstance(v, (int, float, str, bool))}
+    wandb.config.update(simple_ta, allow_val_change=True)
+except Exception:
+    pass
 
 trainer = SFTTrainer(
     model=model,
@@ -164,6 +239,12 @@ trainer = SFTTrainer(
     args=training_args,
     callbacks=[EvaluationCallback(test_dataset, tokenizer)],
 )
+
+# 监控梯度（大模型全量参数直方图成本高，这里以梯度为主，降低开销）
+try:
+    wandb.watch(model, log="gradients", log_freq=25)
+except Exception as e:
+    print(f"W&B watch 模型失败：{e}")
 
 
 # 训练前进行一次初始评估
@@ -177,3 +258,10 @@ trainer.train()
 print("\n进行最终评估...")
 final_metrics = trainer.evaluate()
 print("最终评估结果:", final_metrics)
+
+# 记录最终评估指标并结束 W&B 运行
+try:
+    if isinstance(final_metrics, dict):
+        wandb.log({f"final/{k}": v for k, v in final_metrics.items()})
+finally:
+    wandb.finish()
