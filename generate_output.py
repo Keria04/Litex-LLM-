@@ -39,7 +39,7 @@ import torch
 # import numpy as np
 # from tqdm import tqdm
 # from datetime import datetime
-# from utils import *
+from utils import *
 
 # 照抄 eval
 
@@ -111,12 +111,21 @@ def getclaim(full_litex):
 def generate_outputs(input_dataset, output_file_path):
     """生成输出并保存到文件"""
     results = []
+    success_count = 0
+    incorrect_ids = []  # 记录编译不通过的编号
     for i, sample in enumerate(input_dataset):
         problem = sample["nl_problem"] # 从输入数据集中获取自然语言问题
         user_input = USER_INPUT_PROMPT + problem
         
         print(f"正在处理样本 {i+1}/{len(input_dataset)}...")
         full_litex = generate_response(user_input)
+        compile_ok = judge_litex_correctness(full_litex)
+        print(f"生成的 full_litex 编译是否通过：{compile_ok}")
+        if compile_ok:
+            success_count += 1
+        else:
+            # 收集不正确的编号（使用输入样本中的 id 字段）
+            incorrect_ids.append(sample.get("id"))
         
         # 要求的输出格式构建
         result = {
@@ -134,7 +143,18 @@ def generate_outputs(input_dataset, output_file_path):
         for res in results:
             f_out.write(json.dumps(res, ensure_ascii=False) + '\n')
     
-    print(f"生成结果已保存到 {output_file_path}")
+    # 统计与汇总输出
+    total = len(input_dataset)
+    success_rate = (success_count / total) if total else 0.0
+    print("\n===== 编译统计 =====")
+    print(f"编译成功数：{success_count}/{total}")
+    print(f"编译成功率：{success_rate:.2%}")
+    if incorrect_ids:
+        print("编译不通过的编号：", incorrect_ids)
+    else:
+        print("全部样本均编译通过。")
+
+    print(f"\n生成结果已保存到 {output_file_path}")
 
 
 if __name__ == "__main__":
