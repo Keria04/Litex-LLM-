@@ -16,14 +16,14 @@ import wandb
 # ==============================
 WANDB_ENTITY = os.environ.get("WANDB_ENTITY", "qianliq-default")  # 组织/团队名
 WANDB_PROJECT = os.environ.get("WANDB_PROJECT", "litex-llm")        # 项目名
-WANDB_API_KEY = os.environ.get("WANDB_API_KEY")  # Token（建议使用环境变量注入）
+# WANDB_API_KEY = os.environ.get("WANDB_API_KEY")  # Token（建议使用环境变量注入）
 
-if WANDB_API_KEY and WANDB_API_KEY != "YOUR_WANDB_API_KEY":
-    os.environ["WANDB_API_KEY"] = WANDB_API_KEY
-    try:
-        wandb.login(key=WANDB_API_KEY)
-    except Exception as e:
-        print(f"W&B 登录失败（将继续无 W&B）：{e}")
+# if WANDB_API_KEY and WANDB_API_KEY != "YOUR_WANDB_API_KEY":
+#     os.environ["WANDB_API_KEY"] = WANDB_API_KEY
+#     try:
+#         wandb.login(key=WANDB_API_KEY)
+#     except Exception as e:
+#         print(f"W&B 登录失败（将继续无 W&B）：{e}")
 
 run_name = f"litex-sft-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
 wandb.init(
