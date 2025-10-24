@@ -6,7 +6,6 @@ MODEL_PATH = config.MODEL_PATH
 input_dataset_path = config.INPUT_PATH
 output_file_path = config.OUTPUT_PATH
 LORA_PATH = config.LORA_PATH
-USER_INPUT_PROMPT = config.USER_INPUT_PROMPT  # problem will be appended here
 
 # 若任一配置为空则终止程序
 _missing = [
@@ -15,7 +14,6 @@ _missing = [
         ("INPUT_DATASET_PATH", input_dataset_path),
         ("OUTPUT_FILE_PATH", output_file_path),
         ("LORA_PATH", LORA_PATH),
-        ("USER_INPUT_PROMPT", USER_INPUT_PROMPT),
     ) if not val
 ]
 if _missing:
@@ -115,7 +113,11 @@ def generate_outputs(input_dataset, output_file_path):
     incorrect_ids = []  # 记录编译不通过的编号
     for i, sample in enumerate(input_dataset):
         problem = sample["nl_problem"] # 从输入数据集中获取自然语言问题
-        user_input = USER_INPUT_PROMPT + problem
+        user_input = f"""You are given a mathematical problem stated in natural language.  Your task is to translate it into a complete Litex formal solution, which includes both a `claim:` section stating the formal proposition and a `prove:` section providing a step-by-step logical derivation.
+
+        Show each reasoning step clearly in the proof, and ensure the conclusion in the `claim:` is fully justified by the `prove:` section.
+        ### Problem
+        Question:{problem}"""
         
         print(f"正在处理样本 {i+1}/{len(input_dataset)}...")
         full_litex = generate_response(user_input)
