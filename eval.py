@@ -12,7 +12,7 @@ from utils import *
 
 MODEL_PATH = "Qwen/Qwen2.5-7B-Instruct"
 LORA_PATH = "results/checkpoint-233"
-test_dataset = load_json_datadict("test_litex.json")
+test_dataset = load_json_datadict("dataset/test_litex.json")
 
 
 def preprocess_function(example):

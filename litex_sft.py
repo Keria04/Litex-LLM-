@@ -11,8 +11,8 @@ from utils import *
 
 
 MODEL_PATH = "Qwen/Qwen2.5-7B-Instruct"
-train_dataset = load_json_datadict("train_gsm8k_litex.json")
-test_dataset = load_json_datadict("test_gsm8k_litex.json")
+train_dataset = load_json_datadict("dataset/train_gsm8k_litex_cleaned.json")
+test_dataset = load_json_datadict("dataset/test_gsm8k_litex_cleaned.json")
 
 
 def preprocess_function(example):
