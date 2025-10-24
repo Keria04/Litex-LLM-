@@ -259,6 +259,9 @@ print("\n进行最终评估...")
 final_metrics = trainer.evaluate()
 print("最终评估结果:", final_metrics)
 
+# 打印最佳模型 checkpoint 路径
+print("best_model_checkpoint:", trainer.state.best_model_checkpoint)
+
 # 记录最终评估指标并结束 W&B 运行
 try:
     if isinstance(final_metrics, dict):
