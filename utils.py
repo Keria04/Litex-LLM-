@@ -116,10 +116,3 @@ def split_by_last_prove(s):
     part2 = s[last_prove_index:]
     
     return (part1, part2)
-
-data = load_json_datadict("train_litex.json")
-data = data["train"][0]
-first, second = split_by_last_prove(data["full litex"])
-print(first)
-print(second)
-print(first+second)
