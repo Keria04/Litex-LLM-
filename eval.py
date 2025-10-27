@@ -18,6 +18,7 @@ test_dataset = load_json_datadict("dataset/test_litex.json")
 def preprocess_function(example):
     description = example["natural task"]
     full_litex = example["full litex"]
+    title = example["name"]
     claim, prove = split_by_last_prove(full_litex)
     user_input = f"""You are given a mathematical problem stated in natural language.  Your task is to translate it into a complete Litex formal solution, which includes both a `claim:` section stating the formal proposition and a `prove:` section providing a step-by-step logical derivation.
 
@@ -25,10 +26,12 @@ def preprocess_function(example):
     ### Problem
     {description}"""
     data = {"messages": [{"role": "user", "content": user_input},
-                {"role": "assistant", "content": full_litex}],
+                         {"role": "assistant", "content": full_litex}],
             "user_input": user_input,
             "question": claim,
-            "full_litex": full_litex,}
+            "full_litex": full_litex,
+            "title": title,
+            "description": description, }
     return data
 
 test_dataset = test_dataset.map(preprocess_function)
@@ -90,7 +93,8 @@ def evaluate_model(test_data, num_samples=None, save_results=True, output_dir=".
     
     results = []
     grammar_success_records = []
-    
+    sementic_success_records = []
+    success_records = []
     print(f"开始评估 {len(test_data)} 个样本...")
     print("="*50)
     
@@ -99,16 +103,22 @@ def evaluate_model(test_data, num_samples=None, save_results=True, output_dir=".
     with torch.no_grad():
         for i, example in tqdm(enumerate(test_data)):
             print(f"处理样本 {i+1}/{len(test_data)}")
-            
+            description = example["description"]
             question = example["question"]
             user_input = example["user_input"]
             expected_answer = example["full_litex"]
-            
+            title = example["title"]
             try:
                 generated = generate_response(user_input)
                 full_litex = generated
-                grammar_correctness = judge_litex_grammar_correctness(full_litex)
-                
+                row = {
+                    "title": title,
+                    "description": description,
+                    "solution": full_litex,
+                }
+                correctness = judge_litex_correctness(row)
+                grammar_correctness = correctness["grammar_correctness"]
+                sementic_correctness = correctness["sementic_correctness"]
                 result = {
                     "sample_id": i,
                     "claim": question,
@@ -116,12 +126,15 @@ def evaluate_model(test_data, num_samples=None, save_results=True, output_dir=".
                     "expected_answer": expected_answer,
                     "answer": full_litex,
                     "grammar_correctness": grammar_correctness,
+                    "sementic_correctness": sementic_correctness,
+                    "correctness": correctness["correctness"],
                     "timestamp": datetime.now().isoformat()
                 }
                 
                 results.append(result)
                 grammar_success_records.append(grammar_correctness)
-             
+                sementic_success_records.append(sementic_correctness)
+                success_records.append(correctness["correctness"])
             except Exception as e:
                 print(f"处理样本 {i} 时出错: {e}")
                 result = {
@@ -132,17 +145,20 @@ def evaluate_model(test_data, num_samples=None, save_results=True, output_dir=".
                     "generated": "",
                     "full_litex": "",
                     "grammar_correctness": False,
+                    "sementic_correctness": False,
+                    "correctness": False,
                     "error": str(e),
                     "timestamp": datetime.now().isoformat()
                 }
                 results.append(result)
                 grammar_success_records.append(False)
+                sementic_success_records.append(False)
+                success_records.append(False)
                 continue
 
     overall_stats = {
         "num_samples": len(grammar_success_records),
-        "overall_grammar_correctness": float(np.mean(grammar_success_records)) if grammar_success_records else 0.0,
-        "grammar_correct_count": int(np.sum(grammar_success_records)) if grammar_success_records else 0,
+        "correct_count": int(np.sum(success_records)) if success_records else 0,
         "total_count": len(grammar_success_records),
         "evaluation_timestamp": datetime.now().isoformat()
     }
