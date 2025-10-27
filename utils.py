@@ -2,7 +2,7 @@ import pylitex
 from datasets import load_dataset, Dataset, DatasetDict
 import json
 
-def judge_litex_correctness(message):
+def judge_litex_grammar_correctness(message):
 # msg = """claim:
 #     forall a, b, c R:
 #         a + c = b + c

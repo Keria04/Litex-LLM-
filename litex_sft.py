@@ -75,7 +75,7 @@ class EvaluationCallback(TrainerCallback):
             
             # 生成测试结果
             results = []
-            success_records = []
+            grammar_success_records = []
             model.eval()
             
             with torch.no_grad():
@@ -102,25 +102,25 @@ class EvaluationCallback(TrainerCallback):
                     
                     generated = self.tokenizer.decode(outputs[0][inputs['input_ids'].shape[1]:], skip_special_tokens=True)
                     full_litex = generated
-                    correctness = judge_litex_correctness(full_litex)
+                    grammar_correctness = judge_litex_grammar_correctness(full_litex)
                     result = {
                         "step": state.global_step,
                         "sample_id": i,
                         "claim": question,
                         "full_litex": full_litex,
-                        "correctness": correctness,
+                        "grammar_correctness": grammar_correctness,
                         "timestamp": datetime.now().isoformat()
                     }
                     results.append(result)
-                    success_records.append(correctness)
+                    grammar_success_records.append(grammar_correctness)
                     
                     # print(f"\n样本 {i+1}:")
                     # print(f"问题: {result['prompt']}")
                     # print(f"生成: {result['generated']}")
                     # print("-" * 30)
             results.append({
-                "num sample": len(success_records),
-                "overall_correctness": np.mean(success_records)
+                "num sample": len(grammar_success_records),
+                "overall_grammar_correctness": np.mean(grammar_success_records)
             })
             # 保存结果到文件
             log_file = os.path.join(self.output_dir, f"generation_step_{state.global_step}.json")

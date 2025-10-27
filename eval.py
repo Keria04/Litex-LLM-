@@ -89,7 +89,7 @@ def evaluate_model(test_data, num_samples=None, save_results=True, output_dir=".
         test_data = test_data.select(range(min(num_samples, len(test_data))))
     
     results = []
-    success_records = []
+    grammar_success_records = []
     
     print(f"开始评估 {len(test_data)} 个样本...")
     print("="*50)
@@ -107,7 +107,7 @@ def evaluate_model(test_data, num_samples=None, save_results=True, output_dir=".
             try:
                 generated = generate_response(user_input)
                 full_litex = generated
-                correctness = judge_litex_correctness(full_litex)
+                grammar_correctness = judge_litex_grammar_correctness(full_litex)
                 
                 result = {
                     "sample_id": i,
@@ -115,12 +115,12 @@ def evaluate_model(test_data, num_samples=None, save_results=True, output_dir=".
                     "user_input": user_input,
                     "expected_answer": expected_answer,
                     "answer": full_litex,
-                    "correctness": correctness,
+                    "grammar_correctness": grammar_correctness,
                     "timestamp": datetime.now().isoformat()
                 }
                 
                 results.append(result)
-                success_records.append(correctness)
+                grammar_success_records.append(grammar_correctness)
              
             except Exception as e:
                 print(f"处理样本 {i} 时出错: {e}")
@@ -131,19 +131,19 @@ def evaluate_model(test_data, num_samples=None, save_results=True, output_dir=".
                     "expected_answer": expected_answer,
                     "generated": "",
                     "full_litex": "",
-                    "correctness": False,
+                    "grammar_correctness": False,
                     "error": str(e),
                     "timestamp": datetime.now().isoformat()
                 }
                 results.append(result)
-                success_records.append(False)
+                grammar_success_records.append(False)
                 continue
-    
+
     overall_stats = {
-        "num_samples": len(success_records),
-        "overall_correctness": float(np.mean(success_records)) if success_records else 0.0,
-        "correct_count": int(np.sum(success_records)) if success_records else 0,
-        "total_count": len(success_records),
+        "num_samples": len(grammar_success_records),
+        "overall_grammar_correctness": float(np.mean(grammar_success_records)) if grammar_success_records else 0.0,
+        "grammar_correct_count": int(np.sum(grammar_success_records)) if grammar_success_records else 0,
+        "total_count": len(grammar_success_records),
         "evaluation_timestamp": datetime.now().isoformat()
     }
     results.append(overall_stats)

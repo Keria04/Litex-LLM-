@@ -119,7 +119,7 @@ def generate_outputs(input_dataset, output_file_path):
         
         print(f"正在处理样本 {i+1}/{len(input_dataset)}...")
         full_litex = generate_response(user_input)
-        compile_ok = judge_litex_correctness(full_litex)
+        compile_ok = judge_litex_grammar_correctness(full_litex)
         print(f"生成的 full_litex 编译是否通过：{compile_ok}")
         if compile_ok:
             success_count += 1
