@@ -13,27 +13,6 @@ from utils import *
 MODEL_PATH = "Qwen/Qwen2.5-7B-Instruct"
 LORA_PATH = "results/checkpoint-233"
 test_dataset = load_json_datadict("dataset/test_litex.json")
-
-
-def preprocess_function(example):
-    description = example["natural task"]
-    full_litex = example["full litex"]
-    title = example["name"]
-    claim, prove = split_by_last_prove(full_litex)
-    user_input = f"""You are given a mathematical problem stated in natural language.  Your task is to translate it into a complete Litex formal solution, which includes both a `claim:` section stating the formal proposition and a `prove:` section providing a step-by-step logical derivation.
-
-    Show each reasoning step clearly in the proof, and ensure the conclusion in the `claim:` is fully justified by the `prove:` section.
-    ### Problem
-    {description}"""
-    data = {"messages": [{"role": "user", "content": user_input},
-                         {"role": "assistant", "content": full_litex}],
-            "user_input": user_input,
-            "question": claim,
-            "full_litex": full_litex,
-            "title": title,
-            "description": description, }
-    return data
-
 test_dataset = test_dataset.map(preprocess_function)
 test_dataset = test_dataset["train"]
 
