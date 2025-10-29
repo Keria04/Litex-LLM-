@@ -339,9 +339,9 @@ def get_output_score(file_path: str) -> dict:
         "results": results
     }
 def preprocess_function(example):
-    description = example["natural task"]
+    description = example["description"]
     full_litex = example["full litex"]
-    title = example["name"]
+    title = example["title"]
     claim, prove = split_by_last_prove(full_litex)
     user_input = f"""You are given a mathematical problem stated in natural language.  Your task is to translate it into a complete Litex formal solution, which includes both a `claim:` section stating the formal proposition and a `prove:` section providing a step-by-step logical derivation.
 
