@@ -144,8 +144,12 @@ class EvaluationCallback(TrainerCallback):
                         "solution": full_litex,
                     }
                     correctness = judge_litex_correctness(row)
-                    grammar_correctness = correctness["grammar_correctness"]
-                    sementic_correctness = correctness["sementic_correctness"]
+                    # 容错获取：兼容历史拼写错误 'sementic_correctness'
+                    grammar_correctness = bool(correctness.get("grammar_correctness", False))
+                    semantic_correctness = bool(
+                        correctness.get("semantic_correctness",
+                                         correctness.get("sementic_correctness", False))
+                    )
                     result = {
                         "title": title,
                         "step": state.global_step,
@@ -153,14 +157,14 @@ class EvaluationCallback(TrainerCallback):
                         "claim": question,
                         "full_litex": full_litex,
                         "grammar_correctness": grammar_correctness,
-                        "semantic_correctness": sementic_correctness,
-                        "correctness": correctness["correctness"],
+                        "semantic_correctness": semantic_correctness,
+                        "correctness": bool(correctness.get("correctness", grammar_correctness and semantic_correctness)),
                         "timestamp": datetime.now().isoformat()
                     }
                     results.append(result)
                     grammar_success_records.append(grammar_correctness)
-                    sementic_success_records.append(sementic_correctness)
-                    success_records.append(correctness)
+                    sementic_success_records.append(semantic_correctness)
+                    success_records.append(bool(correctness.get("correctness", grammar_correctness and semantic_correctness)))
                     # print(f"\n样本 {i+1}:")
                     # print(f"问题: {result['prompt']}")
                     # print(f"生成: {result['generated']}")

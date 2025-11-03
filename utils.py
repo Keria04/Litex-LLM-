@@ -283,6 +283,8 @@ def judge_litex_correctness(row: dict[str, str]):
         "description": description,
         "solution": solution,
         "semantic_correctness": semantic_correctness,
+        # 兼容历史拼写错误，避免上层 KeyError
+        "sementic_correctness": semantic_correctness,
         "grammar_correctness": grammar_correctness,
         "correctness": correctness,
     }

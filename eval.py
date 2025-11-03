@@ -96,8 +96,12 @@ def evaluate_model(test_data, num_samples=None, save_results=True, output_dir=".
                     "solution": full_litex,
                 }
                 correctness = judge_litex_correctness(row)
-                grammar_correctness = correctness["grammar_correctness"]
-                sementic_correctness = correctness["sementic_correctness"]
+                # 兼容新老字段名，避免 KeyError
+                grammar_correctness = bool(correctness.get("grammar_correctness", False))
+                semantic_correctness = bool(
+                    correctness.get("semantic_correctness",
+                                     correctness.get("sementic_correctness", False))
+                )
                 result = {
                     "sample_id": i,
                     "claim": question,
@@ -105,15 +109,15 @@ def evaluate_model(test_data, num_samples=None, save_results=True, output_dir=".
                     "expected_answer": expected_answer,
                     "answer": full_litex,
                     "grammar_correctness": grammar_correctness,
-                    "sementic_correctness": sementic_correctness,
-                    "correctness": correctness["correctness"],
+                    "semantic_correctness": semantic_correctness,
+                    "correctness": bool(correctness.get("correctness", grammar_correctness and semantic_correctness)),
                     "timestamp": datetime.now().isoformat()
                 }
                 
                 results.append(result)
                 grammar_success_records.append(grammar_correctness)
-                sementic_success_records.append(sementic_correctness)
-                success_records.append(correctness["correctness"])
+                sementic_success_records.append(semantic_correctness)
+                success_records.append(bool(correctness.get("correctness", grammar_correctness and semantic_correctness)))
             except Exception as e:
                 print(f"处理样本 {i} 时出错: {e}")
                 result = {
