@@ -1,113 +1,65 @@
 import json
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
-from datasets import Dataset
-from peft import PeftModel
-from utils import load_json_datadict, preprocess_function
+import os
 from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from utils import judge_litex_correctness
 
-# ===== 配置 =====
-MODEL_PATH = "Qwen/Qwen2.5-7B-Instruct"
-LORA_PATH = "results/checkpoint-233"
-ORIGINAL_TRAIN_PATH = "dataset/train_litex_merged.json"
-OUTPUT_CANDIDATES_PATH = "dataset/generated_candidates.json"
+INPUT_CANDIDATES_PATH = "dataset/generated_candidates.json"
+OUTPUT_DPO_PATH = "dataset/dpo_train_from_math23k_and_gsm8k.json"
 
-NUM_SAMPLES_PER_PROMPT = 1
-MAX_NEW_TOKENS = 256
-BATCH_SIZE = 4
+# 全局函数：用于被子进程调用
+def judge_single_response(args):
+    title, description, solution, prompt, chosen = args
+    row = {
+        "title": title,
+        "description": description,
+        "solution": solution,
+    }
+    is_correct = judge_litex_correctness(row)["correctness"]
+    if not is_correct:
+        return {
+            "prompt": prompt,
+            "chosen": chosen,
+            "rejected": solution
+        }
+    else:
+        return None  # 正确的响应不构成 rejected，返回 None
 
-original_data = load_json_datadict(ORIGINAL_TRAIN_PATH)
-original_data = original_data.map(preprocess_function)
-original_data = original_data["train"]
+def main():
+    with open(INPUT_CANDIDATES_PATH, "r", encoding="utf-8") as f:
+        all_candidates = json.load(f)
 
-prompts = []
-metadata = []  # 保存 title, description, ground_truth 等
-print("加载 tokenizer...")
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, trust_remote_code=True)
-if tokenizer.pad_token is None:
-    tokenizer.pad_token = tokenizer.eos_token
-for example in original_data:
-    user_input = example["user_input"]
-    messages = [{"role": "user", "content": user_input}]
-    prompt_text = tokenizer.apply_chat_template(
-        messages, tokenize=False, add_generation_prompt=True
-    )
-    prompts.append(prompt_text)
-    metadata.append({
-        "title": example["title"],
-        "description": example["description"],
-        "prompt": user_input,
-        "chosen": example["full_litex"]
-    })
+    # 构建任务列表：每个 candidate 一个任务
+    tasks = []
+    for item in all_candidates:
+        prompt = item["prompt"]
+        chosen = item["chosen"]
+        title = item["title"]
+        description = item["description"]
+        for resp in item["candidates"]:
+            tasks.append((title, description, resp, prompt, chosen))
 
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_PATH,
-    torch_dtype=torch.float16,
-    device_map="auto",
-    trust_remote_code=True
-)
-print("加载 LoRA 适配器...")
-model = PeftModel.from_pretrained(model, LORA_PATH)
-print("合并 LoRA 权重...")
-model = model.merge_and_unload()
-model.eval()
-print("模型加载完成！")
+    print(f"共 {len(tasks)} 个候选响应待判断...")
 
-# ===== 批量生成函数 =====
-def generate_batch(prompts_batch):
-    inputs = tokenizer(
-        prompts_batch,
-        return_tensors="pt",
-        padding=True,
-        truncation=True,
-        max_length=2048,
-        add_special_tokens=False,
-        return_length=True  # 返回每个样本的实际 token 数
-    ).to(model.device)
+    # 获取 CPU 核心数，合理设置进程数（避免过多）
+    num_workers = min(os.cpu_count(), 16)  # 你也可以手动设为 8、12 等
 
-    actual_input_lengths = inputs.pop("length")  # shape: [batch_size]
+    dpo_pairs = []
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+        # 提交所有任务
+        future_to_task = {executor.submit(judge_single_response, task): task for task in tasks}
 
-    all_responses = [[] for _ in range(len(prompts_batch))]
+        # 使用 tqdm 显示进度
+        for future in tqdm(as_completed(future_to_task), total=len(tasks), desc="Judging responses (parallel)"):
+            result = future.result()
+            if result is not None:
+                dpo_pairs.append(result)
 
-    for _ in range(NUM_SAMPLES_PER_PROMPT):
-        with torch.inference_mode():
-            outputs = model.generate(
-                **inputs,
-                max_new_tokens=MAX_NEW_TOKENS,
-                do_sample=True,
-                temperature=0.7,
-                top_p=0.9,
-                pad_token_id=tokenizer.eos_token_id
-            )
-        for i, output in enumerate(outputs):
-            gen_tokens = output[actual_input_lengths[i]:]
-            gen_text = tokenizer.decode(gen_tokens, skip_special_tokens=True)
-            all_responses[i].append(gen_text)
+    print(f"共构造 {len(dpo_pairs)} 个 DPO 偏好对")
+    with open(OUTPUT_DPO_PATH, "w", encoding="utf-8") as f:
+        json.dump(dpo_pairs, f, ensure_ascii=False, indent=2)
 
-    return all_responses
+    print(f"DPO 数据集已保存至: {OUTPUT_DPO_PATH}")
 
-# ===== 批处理生成 =====
-all_candidates = []
-
-for i in tqdm(range(0, len(prompts), BATCH_SIZE), desc="Generating in batches"):
-    batch_prompts = prompts[i:i + BATCH_SIZE]
-    batch_meta = metadata[i:i + BATCH_SIZE]
-
-    generated_batch = generate_batch(batch_prompts)
-
-    for meta, responses in zip(batch_meta, generated_batch):
-        unique_responses = list(dict.fromkeys(responses))
-        all_candidates.append({
-            "title": meta["title"],
-            "description": meta["description"],
-            "prompt": meta["prompt"],
-            "chosen": meta["chosen"],
-            "candidates": unique_responses
-        })
-
-# ===== 保存结果 =====
-print(f"共生成 {len(all_candidates)} 条样本的候选响应")
-with open(OUTPUT_CANDIDATES_PATH, "w", encoding="utf-8") as f:
-    json.dump(all_candidates, f, ensure_ascii=False, indent=2)
-
-print(f"候选响应已保存至: {OUTPUT_CANDIDATES_PATH}")
+if __name__ == "__main__":
+    main()
