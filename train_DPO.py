@@ -181,6 +181,7 @@ def main():
         ref_model=None,  # 使用 implicit reference（或按需传 base_model）
         args=training_args,
         train_dataset=train_dataset,
+        eval_dataset=eval_dataset
     )
 
     # 将 tokenizer 传入回调（回调使用 tokenizer 进行评估和生成）
