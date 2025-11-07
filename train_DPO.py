@@ -169,7 +169,6 @@ def main():
         fp16=True,  # 或者用 bf16=True（如果你的显卡支持）
         remove_unused_columns=False,
         dataloader_pin_memory=False,
-        optim="paged_adamw_32bit",
         lr_scheduler_type="cosine",
         warmup_ratio=0.1,
         report_to="none",
