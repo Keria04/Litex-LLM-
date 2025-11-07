@@ -154,7 +154,7 @@ def main():
         eval_dataset = []
 
     # 训练参数
-    training_args = TrainingArguments(
+    training_args = DPOConfig(
         output_dir=OUTPUT_DIR,
         num_train_epochs=3,
         per_device_train_batch_size=2,
@@ -167,7 +167,7 @@ def main():
         eval_strategy="steps",
         eval_steps=233,
         save_total_limit=2,
-        fp16=True,
+        fp16=True,  # 或者用 bf16=True（如果你的显卡支持）
         remove_unused_columns=False,
         dataloader_pin_memory=False,
         optim="paged_adamw_32bit",
