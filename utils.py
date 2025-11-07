@@ -186,7 +186,7 @@ def generate_prompt(row: dict[str, str]) -> list[dict[str, str]] | None:
 
     return prompt
 def get_agent_list() -> list[str]:
-    return ["qwen-max-latest", "qwen-plus-latest", "deepseek-v3.1"]
+    return ["qwen-max", "qwen-plus", "deepseek-v3.2-exp"]
 def ask_agent(info: tuple[str, list[dict[str, str]]]) -> str | None:
     (model, prompt) = info
     client = OpenAI(
