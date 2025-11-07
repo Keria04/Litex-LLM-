@@ -166,7 +166,6 @@ def main():
         save_steps=233,
         do_eval=False,
         save_total_limit=2,
-        fp16=True,  # 或者用 bf16=True（如果你的显卡支持）
         remove_unused_columns=False,
         dataloader_pin_memory=False,
         optim="adamw_torch",
