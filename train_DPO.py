@@ -164,8 +164,7 @@ def main():
         logging_steps=10,
         save_strategy="steps",
         save_steps=233,
-        eval_strategy="steps",
-        eval_steps=233,
+        do_eval=False,
         save_total_limit=2,
         fp16=True,  # 或者用 bf16=True（如果你的显卡支持）
         remove_unused_columns=False,
@@ -181,7 +180,6 @@ def main():
         ref_model=None,  # 使用 implicit reference（或按需传 base_model）
         args=training_args,
         train_dataset=train_dataset,
-        eval_dataset=eval_dataset
     )
 
     # 将 tokenizer 传入回调（回调使用 tokenizer 进行评估和生成）
