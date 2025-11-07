@@ -14,7 +14,7 @@ import numpy as np
 from datetime import datetime
 from utils import judge_litex_correctness, load_json_datadict
 from transformers.trainer_callback import TrainerCallback
-
+from trl import DPOConfig
 # ===== 配置 =====
 BASE_MODEL_PATH = "Qwen/Qwen2.5-7B-Instruct"
 SFT_LORA_PATH = "results/checkpoint-233"  # 放当前最优的 lora
